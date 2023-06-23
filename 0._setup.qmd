@@ -1,0 +1,81 @@
+---
+title: "Setup Python Env"
+format: html
+---
+
+# Virtual Environment
+
+This is the Python setup for this project.
+I first check available Python versions:
+
+```{r}
+if (R.Version()$os == "mingw32") {
+  system("where python")
+} else {
+  system("whereis python")
+}
+```
+
+I choose the main Python installation in "/usr/bin/python" and use it as the base for a virtual environment.
+
+```{r}
+if (!reticulate::virtualenv_exists(envname = "./python-env/")) {
+  reticulate::virtualenv_create("./python-env/", python = "/usr/bin/python")
+}
+reticulate::virtualenv_exists(envname = "./python-env/")
+```
+
+`reticulate` is supposed to automatically pick this up when started, but to make sure, I set an environment variable.
+But it's
+
+```{r}
+python_path <- file.path(getwd(), "/python-env/bin/python")
+file.exists(python_path)
+Sys.setenv(RETICULATE_PYTHON = python_path)
+```
+
+Optional: save in .Renviron so it is used after a restart of `R`-
+
+```{r eval=FALSE}
+readr::write_lines(
+  x = paste0("RETICULATE_PYTHON=", python_path), 
+  file = ".Renviron", 
+  append = TRUE
+)
+```
+
+To double check, this should not pick up the correct binary in the project folder:
+
+```{r}
+library(reticulate)
+py_config()
+```
+
+## Packages
+
+I'm following the code from the [Linked in the Dark](https://github.com/psyronika/Linked_in_the_dark) paper, which I stored in `sources/Linked_in_the_dark`.
+To install the necessary Python packages, I search for imports in the Python Notebooks:
+
+```{r}
+py_packages <- c(
+  "sentence_transformers",
+  "pandas",
+  "pyarrow"
+)
+```
+
+Install these packages:
+
+```{r}
+reticulate::py_install(py_packages)
+```
+
+# wrap up
+
+Some information about the session.
+
+```{r}
+Sys.time()
+sessionInfo()
+py_list_packages()
+```

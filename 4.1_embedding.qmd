@@ -1,0 +1,55 @@
+---
+title: "Embedding"
+format: html
+---
+
+```{r}
+library(reticulate)
+library(tidyverse)
+```
+
+
+# Data
+
+```{r}
+epsa_data <- readRDS("data/final_dt.rds")
+abstracts <- pull(epsa_data, abstract)
+paper_ids <- pull(epsa_data, paper_id)
+```
+
+
+# Embedding
+
+Set embedding model (see [model list](https://www.sbert.net/docs/pretrained_models.html):
+
+```{python}
+model_name = "all-mpnet-base-v2"
+```
+
+
+```{python embedding}
+from sentence_transformers import SentenceTransformer, util
+import pandas as pd
+import pyarrow as pa
+import pyarrow.feather as feather
+
+embedding_model = SentenceTransformer(model_name, device="cuda")
+
+# sentence transformers can only cope with a certain length of input texts, probably makes sense to set the maximum for this model
+print(embedding_model.tokenizer)
+embedding_model.model_max_len=512
+
+# use the model to encode the data into embeddings
+embeddings = embedding_model.encode(
+  sentences=r.abstracts, 
+  show_progress_bar=True, 
+  convert_to_numpy=True, 
+  normalize_embeddings=False
+)
+# Create a pandas DataFrame with the embeddings
+df = pd.DataFrame(embeddings, columns=[f'feature_{i}' for i in range(embeddings.shape[1])])
+df['paper_id'] = r.paper_ids # Add a 'id' column
+
+# Save the DataFrame as an Arrow file
+feather.write_feather(df, f"data/abstracts_embeddings-{model_name}.arrow")
+```
