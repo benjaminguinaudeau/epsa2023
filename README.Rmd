@@ -1,0 +1,32 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+library(tidyverse)
+```
+
+# epsa2023
+
+1. Gender 
+2. Regional unequalities
+3. Geolocation
+  * Co2
+4. Embeding representation: 
+  * similarity measures/cohesion
+  * discussant fit
+
+## Data overview
+
+```{r}
+readr::read_rds("data/final_dt.rds") %>%
+  glimpse
+```
+
