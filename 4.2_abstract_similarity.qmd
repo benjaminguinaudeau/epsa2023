@@ -1,0 +1,66 @@
+---
+title: "Panel Similarity"
+format: html
+---
+
+```{r setup, include=FALSE}
+library(arrow)
+library(tidygraph)
+library(tidytext)
+library(tidyverse)
+start <- Sys.time() # note start time for later
+cosine_sim <- function(mat, id_col) {
+  ids <- pull(mat, {{id_col}})
+  mat <- as.matrix(mat)
+  embeddings_similarity <- mat / sqrt(rowSums(mat * mat))
+  out <- embeddings_similarity %*% t(embeddings_similarity)
+  colnames(out) <- ids
+  row.names(out) <- ids
+  out[!lower.tri(out)] <- NA
+  out |> 
+    as_tibble(rownames = "paper_id_from") |> 
+    pivot_longer(cols = -paper_id_from, names_to = "paper_id_to") |> 
+    filter(paper_id_from != paper_id_to,
+           !is.na(value))
+}
+```
+
+# Data
+
+```{r}
+epsa_data <- readRDS("data/final_dt.rds")
+embeddings_arrow <- open_dataset(sources =  "data/abstracts_embeddings-all-mpnet-base-v2.arrow",
+                                 format = "arrow")
+```
+
+# Panel Cohesion
+
+```{r}
+panel_cohesion <- map(unique(epsa_data$symp_id), function(panel_id) {
+  pnl <- epsa_data |> 
+    filter(symp_id == panel_id) |> 
+    select(symp_id, paper_id)
+  
+  sim_mat <- embeddings_arrow %>% 
+    filter(paper_id %in% pnl$paper_id) %>% 
+    collect() |> 
+    cosine_sim(id_col = paper_id)
+  
+  tibble(
+    symp_id = symp_id,
+    mean = mean(sim_mat$value),
+    variance = var(sim_mat$value)
+  )
+}, .progress = TRUE) |> 
+  bind_rows()
+```
+
+
+# wrap up
+
+Some information about the session.
+
+```{r}
+Sys.time()
+sessionInfo()
+```
